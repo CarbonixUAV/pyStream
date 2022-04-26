@@ -6,7 +6,7 @@ A simple RTSP streamer for the Ras Pi
 
 ## Camera configuration
 
-To enable the CSI1 port on the RPi CM4, see https://wiki.seeedstudio.com/Dual-Gigabit-Ethernet-Carrier-Board-for-Raspberry-Pi-CM4/#dsi-and-csi-connectors-configuration
+To enable the CSI1 port on the RPi CM4 (only on Seeed Sual etehrnet board), see https://wiki.seeedstudio.com/Dual-Gigabit-Ethernet-Carrier-Board-for-Raspberry-Pi-CM4/#dsi-and-csi-connectors-configuration
 
 ## Installing
 
@@ -16,14 +16,14 @@ This assumes that pyStream is located in /home/pi/pyStream
 
 Run the following commands to install required packages:
 
-sudo apt install -y python3-gst-1.0 libgstrtspserver-1.0-dev python3-pip
-echo "PATH=\$PATH:~/.local/bin" >> ~/.profile
-source ~/.profile
-pip install -r requirements.txt --user
+sudo apt install -y python3-gst-1.0 libgstrtspserver-1.0-dev python3-pip  
+echo "PATH=\$PATH:~/.local/bin" >> ~/.profile  
+source ~/.profile  
+pip install -r requirements.txt --user  
 
-sudo cp pystream.service /etc/systemd/system
-sudo systemctl enable pystream
-sudo systemctl start pystream
+sudo cp pystream.service /etc/systemd/system  
+sudo systemctl enable pystream  
+sudo systemctl start pystream  
 
 ## Running
 
