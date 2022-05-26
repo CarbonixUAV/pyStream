@@ -3,3 +3,4 @@ wheel
 uwsgi
 pytest
 pyyaml
+netifaces

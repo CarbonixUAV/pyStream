@@ -26,7 +26,7 @@ STREAMSETTINGS['active'] = False
 STREAMSETTINGS['resolution'] = "640x480"
 STREAMSETTINGS['ipaddress'] = "127.0.0.1"
 STREAMSETTINGS['mode'] = "RTP"
-
+STREAMSETTINGS['rotation'] = "0"
 
 def is_valid_ipv4_address(address):
     '''Returns true if string is a valid IPv4 address'''
@@ -64,15 +64,15 @@ def getTemperature():
 
 def getCameraDetect():
     '''Confirm camera is detected'''
-    completed = subprocess.run(["v4l2-ctl", "--list-devices"],
+    completed = subprocess.run(["vcgencmd", "get_camera"],
                                capture_output=True)
 
-    if b'unicam' in completed.stdout:
+    if b'detected=1' in completed.stdout:
         return True
     else:
         return False
         
-def doStream(resolution, bitrate, framerate, ipaddress, mode):
+def doStream(resolution, bitrate, framerate, ipaddress, mode, rotation):
     ''''Execute the streaming process'''
     global ISSTREAMING
     # form up the res arguments
@@ -85,10 +85,7 @@ def doStream(resolution, bitrate, framerate, ipaddress, mode):
     else:
         width = '--width=640'
         height = '--height=480'
-    if is_raspberrypi():
-        device = '--videosource=rpicam-uni'
-    else:
-        device = '--videosource=/dev/video0'
+    device = '--videosource=/dev/video0'
 
     # kill any zombies
     if ISSTREAMING:
@@ -99,11 +96,13 @@ def doStream(resolution, bitrate, framerate, ipaddress, mode):
         ISSTREAMING = subprocess.Popen(['python3', 'rtsp-server.py',
                                         '--fps='+str(framerate),
                                         '--bitrate='+str(bitrate), width, height, device,
-                                        '--udp=' + ipaddress + ':5600'])
+                                        '--udp=' + ipaddress + ':5600',
+                                        '--rotation=' + rotation])
     else:
         ISSTREAMING = subprocess.Popen(['python3', 'rtsp-server.py',
                                         '--fps='+str(framerate),
-                                        '--bitrate='+str(bitrate), width, height, device])
+                                        '--bitrate='+str(bitrate), width, height, device,
+                                        '--rotation=' + rotation])
     print("Started Streaming")
 
 @APP.route('/restart', methods=['POST'])
@@ -124,17 +123,14 @@ def videoget():
 
     if STREAMSETTINGS['active'] and STREAMSETTINGS['mode'] == "RTP":
         #format output url:
-        streamaddr = "gst-launch-1.0 udpsrc port=5600 caps='application/x-rtp,media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! autovideosink sync=false"
-        streammpstring = "udpsrc port=5600 buffer-size=90000 ! application/x-rtp ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! video/x-raw,format=BGRA ! appsink name=outsink sync=false"
+        streamaddr = ["gst-launch-1.0 udpsrc port=5600 ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! autovideosink sync=false", "gst-launch-1.0 udpsrc port=5601 ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! autovideosink sync=false"]
+        streammpstring = ["udpsrc port=5600 buffer-size=90000 ! application/x-rtp ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! video/x-raw,format=BGRA ! appsink name=outsink sync=false", "udpsrc port=5601 buffer-size=90000 ! application/x-rtp ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! video/x-raw,format=BGRA ! appsink name=outsink sync=false"]
     elif STREAMSETTINGS['active'] and STREAMSETTINGS['mode'] == "RTSP":
-        if is_raspberrypi():
-            device = 'rpicamuni'
-        else:
-            device = 'devvideo0'
+        device = 'devvideo0'
         #format output url:
         ip = request.host.split(':')[0]
-        streamaddr = "gst-launch-1.0 rtspsrc location=rtsp://" + ip + ":8554/" + device + " latency=0 is-live=True ! queue ! decodebin ! autovideosink"
-        streammpstring = "rtspsrc location=rtsp://" + ip + ":8554/" + device + " latency=0 is-live=True ! queue ! application/x-rtp ! rtph264depay ! avdec_h264 ! videoconvert ! video/x-raw,format=BGRA ! appsink name=outsink"
+        streamaddr = ["gst-launch-1.0 rtspsrc location=rtsp://" + ip + ":8554/" + device + " latency=0 is-live=True ! queue ! decodebin ! autovideosink", "gst-launch-1.0 rtspsrc location=rtsp://" + ip + ":8554/testsrc latency=0 is-live=True ! queue ! decodebin ! autovideosink"]
+        streammpstring = ["rtspsrc location=rtsp://" + ip + ":8554/" + device + " latency=0 is-live=True ! queue ! application/x-rtp ! rtph264depay ! avdec_h264 ! videoconvert ! video/x-raw,format=BGRA ! appsink name=outsink", "rtspsrc location=rtsp://" + ip + ":8554/testsrc latency=0 is-live=True ! queue ! application/x-rtp ! rtph264depay ! avdec_h264 ! videoconvert ! video/x-raw,format=BGRA ! appsink name=outsink"]
     else:
         streamaddr = ""
         streammpstring = ""
@@ -155,7 +151,8 @@ def videoget():
                            streammpstring=streammpstring,
                            selipaddress=STREAMSETTINGS['ipaddress'],
                            tempC=getTemperature(),
-                           cameraDetect=camString)
+                           cameraDetect=camString,
+                           selrot=STREAMSETTINGS['rotation'])
 
 @APP.route('/videoset', methods=['POST'])
 def videopost():
@@ -170,6 +167,7 @@ def videopost():
             framerate = int(request.form['framerate'])
             bitrate = int(request.form['bitrate'])
             assert request.form['resolution'] in ['1920x1080', '1280x720', '640x480']
+            assert request.form['rotation'] in ['0', '90', '180', '270']
             assert request.form['mode'] in ['RTP', 'RTSP']
             assert framerate < 26
             assert framerate > 4
@@ -180,13 +178,14 @@ def videopost():
         except Exception as e:
             return render_template('error.html', error=e)
 
-        doStream(request.form['resolution'], bitrate, framerate, request.form['ipaddress'], request.form['mode'])
+        doStream(request.form['resolution'], bitrate, framerate, request.form['ipaddress'], request.form['mode'], request.form['rotation'])
 
         STREAMSETTINGS['bitrate'] = bitrate
         STREAMSETTINGS['mode'] = request.form['mode']
         STREAMSETTINGS['framerate'] = framerate
         STREAMSETTINGS['active'] = True
         STREAMSETTINGS['resolution'] = request.form['resolution']
+        STREAMSETTINGS['rotation'] = request.form['rotation']
         STREAMSETTINGS['ipaddress'] = request.form['ipaddress']
         with open('settings.yaml', 'w') as fileout:
             yaml.dump(STREAMSETTINGS, fileout)
@@ -222,6 +221,8 @@ if __name__ == "__main__":
                     badsettings = True
                 if loadedSTREAMSETTINGS['mode'] == "RTP" and not is_valid_ipv4_address(loadedSTREAMSETTINGS['ipaddress']):
                     badsettings = True
+                if loadedSTREAMSETTINGS['rotation'] not in ['0', '90', '180', '270']:
+                    badsettings = True
             except:
                 badSettings = True
             if not badSettings:
@@ -239,7 +240,8 @@ if __name__ == "__main__":
                      STREAMSETTINGS['bitrate'],
                      STREAMSETTINGS['framerate'],
                      STREAMSETTINGS['ipaddress'],
-                     STREAMSETTINGS['mode'])
+                     STREAMSETTINGS['mode'],
+                     STREAMSETTINGS['rotation'])
 
         APP.run(use_reloader=False, host='0.0.0.0')
     finally:
