@@ -1,6 +1,18 @@
-## pyStream
+## pyStream & Distributor
 
 A simple RTSP streamer for the Ras Pi  
+> Exec: runDebug and runRelease  
+> Service: pystream  
+
+An RTP distributor  
+> Exec: runDebugDistributor and runReleaseDistributor  
+> Service: pydist   
+
+Notice in exec and service file  
+> python3 distributor.py --host=10.1.1.254  
+
+This is the host address on which WEB Server running. Normally it should be VPN address of the server
+
 
 ### Operating System
 
