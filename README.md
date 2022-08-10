@@ -34,7 +34,7 @@ Else just copy and paste this:
 > sudo cp dt-blob1.bin /boot/dt-blob.bin   
 > sudo reboot  
 
-### Packages Required (Pi)
+### Packages Reequired
 > sudo apt update  
 > sudo apt upgrade  
 > sudo apt-get install gstreamer1.0-tools libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev  
@@ -42,13 +42,7 @@ Else just copy and paste this:
 > sudo apt install autoconf automake git vim nano  
 > sudo apt install vnstat bmon nload  
 
-### Packages Required (Server)
-> sudo apt update
-> sudo apt upgrade
-> sudo apt-get install gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good
-> sudo apt install -y python3-pip
-
-### Installing (Pi)
+### Installing
 This assumes that pyStream is located in /home/pi/pyStream  
 
 Run the following commands to install required packages:  
@@ -70,27 +64,9 @@ Once tested and verified, create a service:
 > sudo systemctl enable pystream  
 > sudo systemctl start pystream  
 
-### Installing (Server)
-This assumes that pyStream is located in ~/pyStream
-
-Run the following commands to install required packages:
-> cd ~/pyStream
-> echo "PATH=\$PATH:~/.local/bin" >> ~/.profile
-> source ~/.profile
-> pip3 install -r requirements.txt --user
-
-Run initially to check:
-./runReleaseDistributor.sh
-(The server will only appear on the wireguard network)
-
-Once tested and verified, create a service:
-> sudo cp pydist.service /etc/systemd/system
-> sudo systemctl enable pydist
-> sudo systemctl start pydist
-
 ### Running
 
-Once running, the video streamer will be active at http://<CM4 IP or Wireguard server IP>:5000, where settings can be configured.  
+Once running, the video streamer will be active at http://<CM4 IP>:5000, where settings can be configured.  
  
 The video streamer automatically saves settings and will restore them on reboot.
 
@@ -102,5 +78,3 @@ Sample Strings
 
 #### gStreamer:
 > gst-launch-1.0 udpsrc port=5600 ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! autovideosink sync=false
-
-
