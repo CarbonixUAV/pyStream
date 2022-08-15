@@ -67,14 +67,19 @@ Once tested and verified, create a service:
 ### Running
 
 Once running, the video streamer will be active at http://<CM4 IP>:5000, where settings can be configured.  
- 
-The video streamer automatically saves settings and will restore them on reboot.
+
+Define target IP and port as 
+**\<IPAddress>:\<Port>** (e.g. 10.1.1.254:5600)
+
+The video streamer automatically saves settings and will restore them on reboot. 
+The settings are defined in settings.yaml file.
+
 
 ### Video Receiver sample strings:  
 Sample Strings    
 
 #### Mission Planner RTP:
-> udpsrc port=5600 ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! video/x-raw,format=BGRA ! appsink name=outsink
+> udpsrc port=\<PORT> ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! video/x-raw,format=BGRA ! appsink name=outsink
 
 #### gStreamer:
-> gst-launch-1.0 udpsrc port=5600 ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! autovideosink sync=false
+> gst-launch-1.0 udpsrc port=\<PORT> ! application/x-rtp,media=video,clock-rate=90000,encoding-name=H264 ! rtpjitterbuffer ! rtph264depay ! h264parse ! avdec_h264 ! autovideosink sync=false
